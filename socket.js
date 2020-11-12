@@ -6,15 +6,18 @@ var PORT = 5000;// listens on specified port 5000
 
 net.createServer(function(sock) {//creates a server with a listener for a socket
     console.log('CONNECTED:',sock.remoteAddress,':',sock.remotePort);// prints socket info
-    sock.setEncoding("utf-8"); //set data encoding (either 'ascii', 'utf8', or 'base64')
+    // sock.setEncoding("utf-8"); //set data encoding (either 'ascii', 'utf8', or 'base64')
     sock.on('data', function(data) {// event name  of data,  listens for data
         console.log('DATA',sock.remoteAddress,': ',data,typeof data,"===",typeof "exit");
         console.log("======================")
         console.log(data)
         console.log("======================2")
-        const number = data.indexOf("{");
-        const string = data.substring(number);
-        const JSONfile = JSON.parse(string);
+            let buff = new Buffer(data, 'base64');
+            let text = buff.toString('ascii');
+
+        //const number = data.indexOf("{");
+        //const string = data.substring(number);
+        const JSONfile = JSON.parse(text);
 
         if(data === "exit") console.log('exit message received !');
 
