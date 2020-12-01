@@ -1,9 +1,14 @@
-var net = require('net');
-var fs = require('fs');
-const { parse } = require('json2csv');
+const net = require('net');
+const fs = require('fs');
 var HOST = '0.0.0.0';//(not sure of host)
 var PORT = 5000;// listens on specified port 5000
-const buffSize= Buffer.alloc(4096);
+
+// const express = require('express');
+// const bodyParser = require(
+//     'body-parser');
+// const app = express();
+
+
 
 function Arraycreator(byte){
     let bigarr = [];
@@ -46,15 +51,16 @@ let bindata = '';
 
 net.createServer(function(sock) {//creates a server with a listener for a socket
     console.log('CONNECTED:',sock.remoteAddress,':',sock.remotePort);
+
     // prints socket info
     var buffers = []
     sock.setEncoding("ascii"); //set data encoding (either 'ascii', 'utf8', or 'base64')
     sock.on('data', function(incomingData) {// event name  of data,  listens for data
         console.log(sock.bytesRead+ " bytes");
-        // console.log(incomingData)
+
         buffers.push(incomingData)
         console.log("receiving data batches...")
-        // console.log(incomingData,sock.remoteAddress,': ',data,typeof data,"===",typeof "exit");
+
 
     }).on('end', function(){
         console.log("finished receiving all batches");
@@ -83,11 +89,18 @@ net.createServer(function(sock) {//creates a server with a listener for a socket
 
         console.log("writing CSV file...")
 
-        fs.writeFile('data.csv', bindata, function (err) {
+        fs.writeFile('data/data.csv', bindata, function (err) {
             if (err) return console.log(err);
         });
 
         console.log("CSV writing complete!");
+        //
+        //
+        // app.use(bodyParser.urlencoded({ extended: false }));
+        //
+        // app.post('/example', (req, res) => {
+        //     res.send(`Center Frequency is: ${req.body.CenterFreq}.`);
+        // });
     });
 
 
