@@ -1,41 +1,338 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <script src="bower_components/platform/platform.js"></script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="import" href="g-spectrogram.html">
-    <link href='http://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-<g-spectrogram controls labels log oscillator></g-spectrogram>
 
-<div id="instructions">
-    <h2>Spectrogram & Oscillator</h2>
-    <ol>
-        <li>^ Allow use of your microphone ^</li>
-        <li>Click or tap anywhere canvas to generate a tone</li>
-    </ol>
-</div>
+<meta charset="utf-8">
 
-<div id="about">
-    <a href="http://smus.com/spectrogram-and-oscillator/" target="_blank">about</a>
-</div>
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
 
-<script>
-    var AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
-    context = new AudioContext();
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+
+<h2 style="text-align:center">Radio 1: Select Frequency</h2>
+
+<form action = "http://localhost:3000/example" method = 'POST' style="text-align:center">
+  <input type="radio" id="CenterFreq" name="CenterFreq" value="600000000">
+  <label for="CenterFreq">600 MHz</label>
+  <input type="radio" id="CenterFreq" name="CenterFreq" value="850000000">
+  <label for="CenterFreq">850 MHz</label><br>
+  <input type="submit" value="Submit">
+</form>
+
+<script type="text/javascript">
+function radianToDegree(radian) {
+  return radian * (180 / Math.PI);
+}
+
+class ComplexNumber {
+/**
+ * z = re + im * i
+ * z = radius * e^(i * phase)
+ *
+ * @param {number} [re]
+ * @param {number} [im]
+ */
+constructor({ re = 0, im = 0 } = {}) {
+  this.re = re;
+  this.im = im;
+}
+
+/**
+ * @param {ComplexNumber|number} addend
+ * @return {ComplexNumber}
+ */
+add(addend) {
+  // Make sure we're dealing with complex number.
+  const complexAddend = this.toComplexNumber(addend);
+
+  return new ComplexNumber({
+    re: this.re + complexAddend.re,
+    im: this.im + complexAddend.im,
+  });
+}
+
+/**
+ * @param {ComplexNumber|number} subtrahend
+ * @return {ComplexNumber}
+ */
+subtract(subtrahend) {
+  // Make sure we're dealing with complex number.
+  const complexSubtrahend = this.toComplexNumber(subtrahend);
+
+  return new ComplexNumber({
+    re: this.re - complexSubtrahend.re,
+    im: this.im - complexSubtrahend.im,
+  });
+}
+
+/**
+ * @param {ComplexNumber|number} multiplicand
+ * @return {ComplexNumber}
+ */
+multiply(multiplicand) {
+  // Make sure we're dealing with complex number.
+  const complexMultiplicand = this.toComplexNumber(multiplicand);
+
+  return new ComplexNumber({
+    re: this.re * complexMultiplicand.re - this.im * complexMultiplicand.im,
+    im: this.re * complexMultiplicand.im + this.im * complexMultiplicand.re,
+  });
+}
+
+/**
+ * @param {ComplexNumber|number} divider
+ * @return {ComplexNumber}
+ */
+divide(divider) {
+  // Make sure we're dealing with complex number.
+  const complexDivider = this.toComplexNumber(divider);
+
+  // Get divider conjugate.
+  const dividerConjugate = this.conjugate(complexDivider);
+
+  // Multiply dividend by divider's conjugate.
+  const finalDivident = this.multiply(dividerConjugate);
+
+  // Calculating final divider using formula (a + bi)(a − bi) = a^2 + b^2
+  const finalDivider = (complexDivider.re ** 2) + (complexDivider.im ** 2);
+
+  return new ComplexNumber({
+    re: finalDivident.re / finalDivider,
+    im: finalDivident.im / finalDivider,
+  });
+}
+
+/**
+ * @param {ComplexNumber|number} number
+ */
+conjugate(number) {
+  // Make sure we're dealing with complex number.
+  const complexNumber = this.toComplexNumber(number);
+
+  return new ComplexNumber({
+    re: complexNumber.re,
+    im: -1 * complexNumber.im,
+  });
+}
+
+/**
+ * @return {number}
+ */
+getRadius() {
+  return Math.sqrt((this.re ** 2) + (this.im ** 2));
+}
+
+/**
+ * @param {boolean} [inRadians]
+ * @return {number}
+ */
+getPhase(inRadians = true) {
+  let phase = Math.atan(Math.abs(this.im) / Math.abs(this.re));
+
+  if (this.re < 0 && this.im > 0) {
+    phase = Math.PI - phase;
+  } else if (this.re < 0 && this.im < 0) {
+    phase = -(Math.PI - phase);
+  } else if (this.re > 0 && this.im < 0) {
+    phase = -phase;
+  } else if (this.re === 0 && this.im > 0) {
+    phase = Math.PI / 2;
+  } else if (this.re === 0 && this.im < 0) {
+    phase = -Math.PI / 2;
+  } else if (this.re < 0 && this.im === 0) {
+    phase = Math.PI;
+  } else if (this.re > 0 && this.im === 0) {
+    phase = 0;
+  } else if (this.re === 0 && this.im === 0) {
+    // More correctly would be to set 'indeterminate'.
+    // But just for simplicity reasons let's set zero.
+    phase = 0;
+  }
+
+  if (!inRadians) {
+    phase = radianToDegree(phase);
+  }
+
+  return phase;
+}
+
+/**
+ * @param {boolean} [inRadians]
+ * @return {{radius: number, phase: number}}
+ */
+getPolarForm(inRadians = true) {
+  return {
+    radius: this.getRadius(),
+    phase: this.getPhase(inRadians),
+  };
+}
+
+/**
+ * Convert real numbers to complex number.
+ * In case if complex number is provided then lefts it as is.
+ *
+ * @param {ComplexNumber|number} number
+ * @return {ComplexNumber}
+ */
+toComplexNumber(number) {
+  if (number instanceof ComplexNumber) {
+    return number;
+  }
+
+  return new ComplexNumber({ re: number });
+}
+
+getReal(){
+  return this.re;
+}
+}
+
+const CLOSE_TO_ZERO_THRESHOLD = 1e-10;
+
+/**
+* Discrete Fourier Transform (DFT): time to frequencies.
+*
+* Time complexity: O(N^2)
+*
+* @param {number[]} inputAmplitudes - Input signal amplitudes over time (complex
+* numbers with real parts only).
+* @param {number} zeroThreshold - Threshold that is used to convert real and imaginary numbers
+* to zero in case if they are smaller then this.
+*
+* @return {ComplexNumber[]} - Array of complex number. Each of the number represents the frequency
+* or signal. All signals together will form input signal over discrete time periods. Each signal's
+* complex number has radius (amplitude) and phase (angle) in polar form that describes the signal.
+*
+* @see https://gist.github.com/anonymous/129d477ddb1c8025c9ac
+* @see https://betterexplained.com/articles/an-interactive-guide-to-the-fourier-transform/
+*/
+function dft(inputAmplitudes, zeroThreshold = CLOSE_TO_ZERO_THRESHOLD) {
+const N = inputAmplitudes.length;
+const signals = [];
+
+// Go through every discrete frequency.
+for (let frequency = 0; frequency < N; frequency += 1) {
+  // Compound signal at current frequency that will ultimately
+  // take part in forming input amplitudes.
+  let frequencySignal = new ComplexNumber();
+
+  // Go through every discrete point in time.
+  for (let timer = 0; timer < N; timer += 1) {
+    const currentAmplitude = inputAmplitudes[timer];
+
+    // Calculate rotation angle.
+    const rotationAngle = -1 * (2 * Math.PI) * frequency * (timer / N);
+
+    // Remember that e^ix = cos(x) + i * sin(x);
+    const dataPointContribution = new ComplexNumber({
+      re: Math.cos(rotationAngle),
+      im: Math.sin(rotationAngle),
+    }).multiply(currentAmplitude);
+
+    // Add this data point's contribution.
+    frequencySignal = frequencySignal.add(dataPointContribution);
+  }
+
+  // Close to zero? You're zero.
+  if (Math.abs(frequencySignal.re) < zeroThreshold) {
+    frequencySignal.re = 0;
+  }
+
+  if (Math.abs(frequencySignal.im) < zeroThreshold) {
+    frequencySignal.im = 0;
+  }
+
+  // Average contribution at this frequency.
+  // The 1/N factor is usually moved to the reverse transform (going from frequencies
+  // back to time). This is allowed, though it would be nice to have 1/N in the forward
+  // transform since it gives the actual sizes for the time spikes.
+  frequencySignal = frequencySignal.divide(N);
+
+  // Add current frequency signal to the list of compound signals.
+  signals[frequency] = frequencySignal.getReal();
+  
+}
+
+return signals;
+}
+
+var a = []
+var I = []
+var Q = []
+var mag = []
+var time = []
+var freq_mag = []
+var freqs = []
+
+// set the dimensions and margins of the graph
+var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    width = 460 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#my_dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+d3.text("data/data.csv", (function(d){ //Reads in the CSV as a text file
+  a = d3.csvParseRows(d); //Parses the text file as a csv, a is an array of each row
+  a.forEach((item, index) => { //Each item in 'a' is an arraysize 2 with I and Q
+    I.push(parseInt(item[0], 2)); //Stores I of each time sample
+    Q.push(parseInt(item[1], 2)); //Stores Q of each time sample
+  });
+  calcMag(I,Q);
+  freq_mag = dft(mag);
+  make_freq();
+  graph(freqs, freq_mag);
+  
+  console.log("Made it here");
+}));
+
+function make_freq(){
+  for(var i = 0; i < freq_mag.length; i++){
+    freqs.push(i);
+  }
+}
+
+// Graphing the data
+function graph(yaxis, xaxis){
+
+// Add X axis --> it is a date format
+var x = d3.scaleTime()
+  .domain(xaxis)
+  .range([ 0, width ]);
+svg.append("g")
+  .attr("transform", "translate(0," + height + ")")
+  .call(d3.axisBottom(x));
+
+// Add Y axis
+var y = d3.scaleLinear()
+  .domain([0, d3.max(yaxis)])
+  .range([ height, 0 ]);
+svg.append("g")
+  .call(d3.axisLeft(y));
+
+// Add the line
+svg.append("path")
+  .datum(yaxis)
+  .attr("fill", "none")
+  .attr("stroke", "steelblue")
+  .attr("stroke-width", 1.5)
+  .attr("d", d3.line()
+    .x(function(d) { return x(xaxis) })
+    .y(function(d) { return y(yaxis) })
+    )
+
+}
+
+function calcMag(I, Q){
+  for(i = 0; i < I.length; i++){
+    mag.push(Math.sqrt((I[i]*I[i]) + (Q[i] * Q[i])));
+  }
+}
+
+
 </script>
-
-<script>
-    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-    ga('create', 'UA-17930798-31', 'borismus.github.io');
-    ga('send', 'pageview');
-
-</script>
-</body>
-</html>
