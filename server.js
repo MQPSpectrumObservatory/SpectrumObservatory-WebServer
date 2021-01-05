@@ -3,7 +3,7 @@ const http = require('http')
     , qs = require("querystring")
     , url = require('url')
     , path = require('path')
-    , port = 5000;
+    , port = 80;
 
 // const express = require('express');
 // const bodyParser = require(
@@ -21,24 +21,14 @@ var mime = {
     js: 'application/javascript'
 };
 
-
+// Optimized this function to split the data into arrays more effectively -JRM
 function Arraycreator(byte) {
-    let bigarr = [];
-    let iterator = byte.split('');
-    let arr = [];
-    let chunk = [];
-    let char = [];
-    while (iterator.length > 0) {
-        chunk = iterator.splice(0, 32);
-        let str = chunk.toString();
-        let blac = str.replace(/,/g, "");
-        arr.push(blac);
+    const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
+    const newArr = [];
+    while (inArray.length) {
+        newArr.push(inArray.splice(0, 2));
     }
-    while (arr.length > 0) {
-        char = arr.splice(0, 2);
-        bigarr.push(char);
-    }
-    return bigarr
+    return newArr;
 }
 
 const arrayToCSV = (arr, delimiter = ',') =>
@@ -48,18 +38,25 @@ const arrayToCSV = (arr, delimiter = ',') =>
         )
         .join('\n');
 
+
+// fixed decoding and padding issue -JRM
+const zeroPad = (num, places) => String(num).padStart(places, '0')
+
 function textToBin(text) {
-    var length = text.length,
-        output = [];
-    for (var i = 0; i < length; i++) {
-        var bin = text[i].charCodeAt().toString(2);
-        output.push(Array(6 - bin.length + 1).join("0") + bin)
+    var txt = new Buffer.from(text, 'base64').toString('binary');
+    var output = [];
+
+    for (var i = 0; i < txt.length; i++) {
+        var bin = txt[i].charCodeAt().toString(2);
+        output.push(Array(bin.length + 1).join('') + zeroPad(bin, 8));
     }
-    return output.join("")
+
+    return output.join("");
 }
 
+let freq = '';
+let number='';
 
-let bindata = '';
 
 // START OF NODE HTTP CODE
 
@@ -86,18 +83,22 @@ const server = http.createServer(function (req, res) {
             s.on('error', function () {
                 const uri = url.parse(req.url);
                 switch (uri.pathname) {
-                    case '/hello':
-                        console.log("sending html file");
-                        sendFile(res, "public/html/hello.html", "text/html");
+                    case '/freq1':
+                        console.log("sending freq value");
+                        res.end(number);
                         break;
-                    // case '/g-oscillator':
-                    //     console.log("sending html file");
-                    //     //sendFile(res, "public/html/g-oscillator.html", "text/html");
-                    //     sendFile(res, "public/html/g-spectrogram.html", "text/html");
-                    //     console.log("sending html2 file");
-                    //     sendFile(res, "public/html/g-spectrogram-controls.html", "text/html");
-                    //     break;
-
+                    case '/freq2':
+                        console.log("sending freq value");
+                        res.end(number);
+                        break;
+                    case '/freq3':
+                        console.log("sending freq value");
+                        res.end(number);
+                        break;
+                    case '/freq4':
+                        console.log("sending freq value");
+                        res.end(number);
+                        break;
                     default:
                         sendCode(res, 404, "404 not found");
                         break;
@@ -106,7 +107,7 @@ const server = http.createServer(function (req, res) {
             break;
         case "POST":
             console.log(url.parse(req.url).pathname);
-            if (req.url === '/data') {
+            if (req.url === '/data1') {
                 let reqBody = '';
                 req.on('data', function (data) {
                     console.log(req.socket.bytesRead + " bytes");
@@ -115,6 +116,7 @@ const server = http.createServer(function (req, res) {
                     if (reqBody.length > 1e7) {
                         sendCode(res, 413, "Request too large");
                     }
+                    sendCode(res, 200, "OK"); // Server needs to respond to the data transfer client -JRM
                 });
 
                 req.on('end', function () {
@@ -136,25 +138,192 @@ const server = http.createServer(function (req, res) {
 
                     console.log("converting binary data to CSV format...")
 
-                    bindata = arrayToCSV(Arraycreator(bin));
+                    let bindata = arrayToCSV(Arraycreator(bin));
 
                     console.log("writing CSV file...")
 
-                    fs.writeFile('data/data.csv', bindata, function (err) {
+                    fs.writeFile('public/data/data1.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
                     console.log("CSV writing complete!");
-                    //
-                    //
-                    // app.use(bodyParser.urlencoded({ extended: false }));
-                    //
-                    // app.post('/example', (req, res) => {
-                    //     res.send(`Center Frequency is: ${req.body.CenterFreq}.`);
-                    // });
+
                 });
-            } else if (req.url === '/anotherpath') {
-            } else {
+            } else if (req.url === '/data2') {
+                let reqBody = '';
+                req.on('data', function (data) {
+                    console.log(req.socket.bytesRead + " bytes");
+                    console.log("receiving data batches...")
+                    reqBody += data;
+                    if (reqBody.length > 1e7) {
+                        sendCode(res, 413, "Request too large");
+                    }
+                    sendCode(res, 200, "OK"); // Server needs to respond to the data transfer client -JRM
+                });
+
+                req.on('end', function () {
+                    console.log("finished receiving all batches");
+                    console.log(req.socket.bytesRead + " final bytes");
+
+                    console.log("extracting payload data...");
+
+                    const number = reqBody.indexOf("{");
+                    reqBody = reqBody.substring(number);
+                    var jsonData = JSON.parse(reqBody);
+                    // console.log(jsonData);
+
+                    const payloadData = jsonData.payload;
+
+                    console.log("converting payload to binary data")
+
+                    const bin = textToBin(payloadData);
+
+                    console.log("converting binary data to CSV format...")
+
+                    let bindata = arrayToCSV(Arraycreator(bin));
+
+                    console.log("writing CSV file...")
+
+                    fs.writeFile('public/data/data2.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                        if (err) return console.log(err);
+                    });
+
+                    console.log("CSV writing complete!");
+
+                });
+            }else if (req.url === '/data3') {
+                let reqBody = '';
+                req.on('data', function (data) {
+                    console.log(req.socket.bytesRead + " bytes");
+                    console.log("receiving data batches...")
+                    reqBody += data;
+                    if (reqBody.length > 1e7) {
+                        sendCode(res, 413, "Request too large");
+                    }
+                    sendCode(res, 200, "OK"); // Server needs to respond to the data transfer client -JRM
+                });
+
+                req.on('end', function () {
+                    console.log("finished receiving all batches");
+                    console.log(req.socket.bytesRead + " final bytes");
+
+                    console.log("extracting payload data...");
+
+                    const number = reqBody.indexOf("{");
+                    reqBody = reqBody.substring(number);
+                    var jsonData = JSON.parse(reqBody);
+                    // console.log(jsonData);
+
+                    const payloadData = jsonData.payload;
+
+                    console.log("converting payload to binary data")
+
+                    const bin = textToBin(payloadData);
+
+                    console.log("converting binary data to CSV format...")
+
+                    let bindata = arrayToCSV(Arraycreator(bin));
+
+                    console.log("writing CSV file...")
+
+                    fs.writeFile('public/data/data3.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                        if (err) return console.log(err);
+                    });
+
+                    console.log("CSV writing complete!");
+
+                });
+            } else if (req.url === '/data4') {
+                let reqBody = '';
+                req.on('data', function (data) {
+                    console.log(req.socket.bytesRead + " bytes");
+                    console.log("receiving data batches...")
+                    reqBody += data;
+                    if (reqBody.length > 1e7) {
+                        sendCode(res, 413, "Request too large");
+                    }
+                    sendCode(res, 200, "OK"); // Server needs to respond to the data transfer client -JRM
+                });
+
+                req.on('end', function () {
+                    console.log("finished receiving all batches");
+                    console.log(req.socket.bytesRead + " final bytes");
+
+                    console.log("extracting payload data...");
+
+                    const number = reqBody.indexOf("{");
+                    reqBody = reqBody.substring(number);
+                    var jsonData = JSON.parse(reqBody);
+                    // console.log(jsonData);
+
+                    const payloadData = jsonData.payload;
+
+                    console.log("converting payload to binary data")
+
+                    const bin = textToBin(payloadData);
+
+                    console.log("converting binary data to CSV format...")
+
+                    let bindata = arrayToCSV(Arraycreator(bin));
+
+                    console.log("writing CSV file...")
+
+                    fs.writeFile('public/data/data4.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                        if (err) return console.log(err);
+                    });
+
+                    console.log("CSV writing complete!");
+
+                });
+            } else if (req.url === '/post1') {
+
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                    console.log("the value of freq =" + "" + freq)
+                });
+                req.on('end', function () {
+                    console.log('finished getting frequency')
+                     number= freq.toString();
+                })
+
+            }
+            else if (req.url === '/post2') {
+
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                    console.log("the value of freq =" + "" + freq)
+                });
+                req.on('end', function () {
+                    console.log('finished getting frequency')
+                    number= freq.toString();
+                })
+
+            }
+            else if (req.url === '/post3') {
+
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                    console.log("the value of freq =" + "" + freq)
+                });
+                req.on('end', function () {
+                    console.log('finished getting frequency')
+                    number= freq.toString();
+                })
+
+            }
+            else if (req.url === '/post4') {
+
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                    console.log("the value of freq =" + "" + freq)
+                });
+                req.on('end', function () {
+                    console.log('finished getting frequency')
+                    number= freq.toString();
+                })
+
+            }
+            else {
                 console.log(url.parse(req.url).pathname);
                 sendCode(res, 404, "Not found");
             }
@@ -184,5 +353,3 @@ function sendCode(res, code, msg) {
         res.end(content, 'utf-8')
     })
 }
-
-// END OF HTTP NODE CODE
