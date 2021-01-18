@@ -21,24 +21,14 @@ var mime = {
     js: 'application/javascript'
 };
 
-
+// Optimized this function to split the data into arrays more effectively -JRM
 function Arraycreator(byte) {
-    let bigarr = [];
-    let iterator = byte.split('');
-    let arr = [];
-    let chunk = [];
-    let char = [];
-    while (iterator.length > 0) {
-        chunk = iterator.splice(0, 32);
-        let str = chunk.toString();
-        let blac = str.replace(/,/g, "");
-        arr.push(blac);
+    const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
+    const newArr = [];
+    while(inArray.length) {
+        newArr.push(inArray.splice(0, 2));
     }
-    while (arr.length > 0) {
-        char = arr.splice(0, 2);
-        bigarr.push(char);
-    }
-    return bigarr
+    return newArr;
 }
 
 const arrayToCSV = (arr, delimiter = ',') =>
@@ -48,14 +38,19 @@ const arrayToCSV = (arr, delimiter = ',') =>
         )
         .join('\n');
 
+// fixed decoding and padding issue -JRM
+const zeroPad = (num, places) => String(num).padStart(places, '0');
+
 function textToBin(text) {
-    var length = text.length,
-        output = [];
-    for (var i = 0; i < length; i++) {
-        var bin = text[i].charCodeAt().toString(2);
-        output.push(Array(6 - bin.length + 1).join("0") + bin)
+    var txt = new Buffer.from(text, 'base64').toString('binary');
+    var output = [];
+
+    for (var i = 0; i < txt.length; i++) {
+        var bin = txt[i].charCodeAt().toString(2);
+        output.push(Array(bin.length + 1).join('') + zeroPad(bin, 8));
     }
-    return output.join("")
+
+    return output.join("");
 }
 
 
@@ -141,7 +136,7 @@ const server = http.createServer(function (req, res) {
 
                     console.log("converting binary data to CSV format...")
 
-                    let bindata = arrayToCSV(Arraycreator(bin));
+                    bindata = arrayToCSV(Arraycreator(bin));
 
                     console.log("writing CSV file...")
 
@@ -183,7 +178,7 @@ const server = http.createServer(function (req, res) {
 
                     console.log("converting binary data to CSV format...")
 
-                    let bindata = arrayToCSV(Arraycreator(bin));
+                    bindata = arrayToCSV(Arraycreator(bin));
 
                     console.log("writing CSV file...")
 
@@ -225,7 +220,7 @@ const server = http.createServer(function (req, res) {
 
                     console.log("converting binary data to CSV format...")
 
-                    let bindata = arrayToCSV(Arraycreator(bin));
+                    bindata = arrayToCSV(Arraycreator(bin));
 
                     console.log("writing CSV file...")
 
@@ -267,7 +262,7 @@ const server = http.createServer(function (req, res) {
 
                     console.log("converting binary data to CSV format...")
 
-                    let bindata = arrayToCSV(Arraycreator(bin));
+                    bindata = arrayToCSV(Arraycreator(bin));
 
                     console.log("writing CSV file...")
 
