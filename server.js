@@ -26,7 +26,7 @@ function Arraycreator(byte) {
     const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
     const newArr = [];
     while(inArray.length) {
-        newArr.push(inArray.splice(0, 2));
+        newArr.push(inArray.splice(0, 8));
     }
     return newArr;
 }
@@ -127,8 +127,13 @@ const server = http.createServer(function (req, res) {
                     reqBody = reqBody.substring(number);
                     var jsonData = JSON.parse(reqBody);
                     // console.log(jsonData);
+                    console.log("JSON DATA ")
+                    console.log("==============================")
+                    console.log(jsonData);
 
                     const payloadData = jsonData.payload;
+                    const metadata = jsonData.metadata;
+
 
                     console.log("converting payload to binary data")
 
@@ -140,7 +145,7 @@ const server = http.createServer(function (req, res) {
 
                     console.log("writing CSV file...")
 
-                    fs.writeFile('public/data/data1.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                    fs.writeFile('public/data/data1.csv', bindata, metadata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
@@ -171,10 +176,11 @@ const server = http.createServer(function (req, res) {
                     // console.log(jsonData);
 
                     const payloadData = jsonData.payload;
-
+                    const metadata    = jsonData.metadata;
                     console.log("converting payload to binary data")
 
                     const bin = textToBin(payloadData);
+                    const met = textToBin(metadata)
 
                     console.log("converting binary data to CSV format...")
 
