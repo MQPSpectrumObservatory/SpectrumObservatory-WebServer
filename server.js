@@ -26,7 +26,7 @@ function Arraycreator(byte) {
     const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
     const newArr = [];
     while(inArray.length) {
-        newArr.push(inArray.splice(0, 8));
+        newArr.push(inArray.splice(0, 2));
     }
     return newArr;
 }
@@ -126,15 +126,16 @@ const server = http.createServer(function (req, res) {
                     const number = reqBody.indexOf("{");
                     reqBody = reqBody.substring(number);
                     var jsonData = JSON.parse(reqBody);
-                    // console.log(jsonData);
-                    console.log("JSON DATA ")
-                    console.log("==============================")
-                    console.log(jsonData);
-
                     const payloadData = jsonData.payload;
-                    const metadata = jsonData.metadata;
+                    const met = jsonData.metadata;
 
+                    let rx_time = "rx_time:" + met[0].rx_time
+                    let rx_sample = "rx_sample:" + met[0].rx_sample
+                    let num_samples = "num_samples:" + met[0].num_samples
+                    let radio_num = "radio_num:" + met[0].radio_num
 
+                    let line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
+                    console.log(line)
                     console.log("converting payload to binary data")
 
                     const bin = textToBin(payloadData);
@@ -143,9 +144,11 @@ const server = http.createServer(function (req, res) {
 
                     bindata = arrayToCSV(Arraycreator(bin));
 
+                    let finaldata = line + "\n" + bindata
+
                     console.log("writing CSV file...")
 
-                    fs.writeFile('public/data/data1.csv', bindata, metadata, function (err) { // data.csv directory is nested in public -JRM
+                    fs.writeFile('public/data/data1.csv', finaldata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
@@ -173,29 +176,38 @@ const server = http.createServer(function (req, res) {
                     const number = reqBody.indexOf("{");
                     reqBody = reqBody.substring(number);
                     var jsonData = JSON.parse(reqBody);
-                    // console.log(jsonData);
-
                     const payloadData = jsonData.payload;
-                    const metadata    = jsonData.metadata;
+                    const met = jsonData.metadata;
+
+                    let rx_time = "rx_time:" + met[0].rx_time
+                    let rx_sample = "rx_sample:" + met[0].rx_sample
+                    let num_samples = "num_samples:" + met[0].num_samples
+                    let radio_num = "radio_num:" + met[0].radio_num
+
+                    let line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
+                    console.log("====================================")
+                    console.log(line)
+                    console.log("====================================")
                     console.log("converting payload to binary data")
 
                     const bin = textToBin(payloadData);
-                    const met = textToBin(metadata)
 
                     console.log("converting binary data to CSV format...")
 
                     bindata = arrayToCSV(Arraycreator(bin));
 
+                    let finaldata = line + "\n" + bindata
+
                     console.log("writing CSV file...")
 
-                    fs.writeFile('public/data/data2.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                    fs.writeFile('public/data/data2.csv', finaldata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
                     console.log("CSV writing complete!");
 
                 });
-            }else if (req.url === '/data3') {
+            } else if (req.url === '/data3') {
                 let reqBody = '';
                 req.on('data', function (data) {
                     console.log(req.socket.bytesRead + " bytes");
@@ -216,10 +228,20 @@ const server = http.createServer(function (req, res) {
                     const number = reqBody.indexOf("{");
                     reqBody = reqBody.substring(number);
                     var jsonData = JSON.parse(reqBody);
-                    // console.log(jsonData);
-
                     const payloadData = jsonData.payload;
+                    const met = jsonData.metadata;
+                    console.log("JSON DATA ")
+                    console.log("==============================")
+                    console.log(met);
+                    let rx_time = "rx_time:" + met[0].rx_time
+                    let rx_sample = "rx_sample:" + met[0].rx_sample
+                    let num_samples = "num_samples:" + met[0].num_samples
+                    let radio_num = "radio_num:" + met[0].radio_num
 
+                    let line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
+                    console.log("====================================")
+                    console.log(line)
+                    console.log("====================================")
                     console.log("converting payload to binary data")
 
                     const bin = textToBin(payloadData);
@@ -228,9 +250,11 @@ const server = http.createServer(function (req, res) {
 
                     bindata = arrayToCSV(Arraycreator(bin));
 
+                    let finaldata = line + "\n" + bindata
+
                     console.log("writing CSV file...")
 
-                    fs.writeFile('public/data/data3.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                    fs.writeFile('public/data/data3.csv', finaldata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
@@ -258,10 +282,18 @@ const server = http.createServer(function (req, res) {
                     const number = reqBody.indexOf("{");
                     reqBody = reqBody.substring(number);
                     var jsonData = JSON.parse(reqBody);
-                    // console.log(jsonData);
-
                     const payloadData = jsonData.payload;
+                    const met = jsonData.metadata;
+                    console.log("JSON DATA ")
+                    console.log("==============================")
+                    console.log(met);
+                    let rx_time = "rx_time:" + met[0].rx_time
+                    let rx_sample = "rx_sample:" + met[0].rx_sample
+                    let num_samples = "num_samples:" + met[0].num_samples
+                    let radio_num = "radio_num:" + met[0].radio_num
 
+                    let line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
+                    console.log(line)
                     console.log("converting payload to binary data")
 
                     const bin = textToBin(payloadData);
@@ -270,9 +302,11 @@ const server = http.createServer(function (req, res) {
 
                     bindata = arrayToCSV(Arraycreator(bin));
 
+                    let finaldata = line + "\n" + bindata
+
                     console.log("writing CSV file...")
 
-                    fs.writeFile('public/data/data4.csv', bindata, function (err) { // data.csv directory is nested in public -JRM
+                    fs.writeFile('public/data/data4.csv', finaldata, function (err) { // data.csv directory is nested in public -JRM
                         if (err) return console.log(err);
                     });
 
