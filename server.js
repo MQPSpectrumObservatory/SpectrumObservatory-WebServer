@@ -3,7 +3,7 @@ const http = require('http')
     , qs = require("querystring")
     , url = require('url')
     , path = require('path')
-    , port = 80;
+    , port = 5000;
 
 // const express = require('express');
 // const bodyParser = require(
@@ -111,6 +111,7 @@ const server = http.createServer(function (req, res) {
                     console.log(req.socket.bytesRead + " bytes");
                     console.log("receiving data batches...")
                     reqBody += data;
+                    console.log("how many bytes =" +reqBody)
                     if (reqBody.length > 1e7) {
                         sendCode(res, 413, "Request too large");
                     }
@@ -213,6 +214,7 @@ const server = http.createServer(function (req, res) {
                     console.log(req.socket.bytesRead + " bytes");
                     console.log("receiving data batches...")
                     reqBody += data;
+                    console
                     if (reqBody.length > 1e7) {
                         sendCode(res, 413, "Request too large");
                     }
