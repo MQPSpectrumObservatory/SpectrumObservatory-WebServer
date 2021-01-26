@@ -84,7 +84,8 @@ const server = http.createServer(function (req, res) {
                 switch (uri.pathname) {
                     case '/freq1':
                         console.log("sending freq value");
-                        res.end(number);
+                        let num2 = 50000000;
+                        res.end(num2);
                         sendCode(res, 200, "OK");
                         break;
                     case '/freq2':
