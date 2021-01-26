@@ -208,10 +208,10 @@ function process_request(res, req) {
         console.log("JSON DATA ")
         console.log("==============================")
         console.log(met);
-        let rx_time = "rx_time:" + met[0].rx_time
-        let rx_sample = "rx_sample:" + met[0].rx_sample
-        let num_samples = "num_samples:" + met[0].num_samples
-        let radio_num = "radio_num:" + met[0].radio_num
+        let rx_time =  met[0].rx_time
+        let rx_sample = met[0].rx_sample
+        let num_samples =  met[0].num_samples
+        let radio_num =  met[0].radio_num
 
         let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
         console.log(metadata_line)
