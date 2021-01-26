@@ -55,6 +55,7 @@ function textToBin(text) {
 
 
 let bindata = '';
+let number = '';
 
 // START OF NODE HTTP CODE
 
@@ -84,18 +85,22 @@ const server = http.createServer(function (req, res) {
                     case '/freq1':
                         console.log("sending freq value");
                         res.end(number);
+                        sendCode(res, 200, "OK");
                         break;
                     case '/freq2':
                         console.log("sending freq value");
                         res.end(number);
+                        sendCode(res, 200, "OK");
                         break;
                     case '/freq3':
                         console.log("sending freq value");
                         res.end(number);
+                        sendCode(res, 200, "OK");
                         break;
                     case '/freq4':
                         console.log("sending freq value");
                         res.end(number);
+                        sendCode(res, 200, "OK");
                         break;
                     default:
                         sendCode(res, 404, "404 not found");
@@ -242,7 +247,8 @@ function convertBinToCSV(req, binary_string, index, metadata_line) {
     bindata = arrayToCSV(bin_array);
 
     let finaldata = metadata_line + "\n" + bindata
-
+    let val = finaldata % 1024;
+    console.log(val);
     let new_file_name = req.url.toString() + '_' + index.toString() + '.csv'
 
     console.log("writing " + new_file_name + " CSV file...")
