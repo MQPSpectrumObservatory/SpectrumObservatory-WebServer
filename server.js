@@ -56,7 +56,7 @@ function textToBin(text) {
 
 let bindata = '';
 let number = '';
-
+let num2 = '';
 // START OF NODE HTTP CODE
 
 const server = http.createServer(function (req, res) {
@@ -84,8 +84,8 @@ const server = http.createServer(function (req, res) {
                 switch (uri.pathname) {
                     case '/freq1':
                         console.log("sending freq value");
-                        let num2 = 50000000;
-                        num2.toString();
+                        num2 +=20000;
+                        console.log(typeof (num2))
                         res.end(num2);
                         sendCode(res, 200, "OK");
                         break;
