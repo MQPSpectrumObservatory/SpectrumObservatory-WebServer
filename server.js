@@ -85,6 +85,7 @@ const server = http.createServer(function (req, res) {
                     case '/freq1':
                         console.log("sending freq value");
                         let num2 = 50000000;
+                        num2.toString();
                         res.end(num2);
                         sendCode(res, 200, "OK");
                         break;
