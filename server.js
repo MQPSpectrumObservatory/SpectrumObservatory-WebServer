@@ -41,7 +41,7 @@ const arrayToCSV = (arr, delimiter = ',') =>
 // fixed decoding and padding issue -JRM
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 
-function textToBin(text) {
+function textToBin(text, byteSizePerArray) {
     var txt = new Buffer.from(text, 'base64').toString('binary');
     var output = [];
 
@@ -50,13 +50,12 @@ function textToBin(text) {
         output.push(Array(bin.length + 1).join('') + zeroPad(bin, 8));
     }
 
-    return output;
+    return output.join("");
 }
 
 
 let bindata = '';
-let number = '';
-let num2 = '';
+let number = 0;
 // START OF NODE HTTP CODE
 
 const server = http.createServer(function (req, res) {
@@ -84,9 +83,7 @@ const server = http.createServer(function (req, res) {
                 switch (uri.pathname) {
                     case '/freq1':
                         console.log("sending freq value");
-                        num2 +=20000;
-                        console.log(typeof (num2))
-                        res.end(num2);
+                        res.end(number);
                         sendCode(res, 200, "OK");
                         break;
                     case '/freq2':
@@ -224,16 +221,15 @@ function process_request(res, req) {
         console.log(metadata_line)
         console.log("converting payload to binary data")
 
-        let binary_string_array = textToBin(payloadData)
+        let binary_string = textToBin(payloadData)
 
+        const bin_array_in_chunks = splitString(binary_string, 1024)
 
-        const no_of_chunks = 4
-
-        const bin_array_in_chunks = splitToChunks(binary_string_array, no_of_chunks)
+        console.log(binary_string)
 
         let i
         for(i = 0; i < bin_array_in_chunks.length; i++){
-            convertBinToCSV(req, bin_array_in_chunks[i].join(""), i, metadata_line)
+            convertBinToCSV(req, bin_array_in_chunks[i], i, metadata_line)
         }
 
         // convertBinToCSV_old(req, binary_string_array.join(""), metadata_line)
@@ -249,8 +245,7 @@ function convertBinToCSV(req, binary_string, index, metadata_line) {
     bindata = arrayToCSV(bin_array);
 
     let finaldata = metadata_line + "\n" + bindata
-    let val = finaldata % 1024;
-    console.log(val);
+
     let new_file_name = req.url.toString() + '_' + index.toString() + '.csv'
 
     console.log("writing " + new_file_name + " CSV file...")
@@ -283,12 +278,16 @@ function convertBinToCSV_old(req, binary_string, metadata_line) {
     console.log("CSV writing complete!");
 }
 
-function splitToChunks(array, parts) {
-    let result = [];
-    for (let i = parts; i > 0; i--) {
-        result.push(array.splice(0, Math.ceil(array.length / i)));
-    }
-    return result;
-}
+// function splitToChunks(array, parts) {
+//     let result = [];
+//     for (let i = parts; i > 0; i--) {
+//         result.push(array.splice(0, Math.ceil(array.length / i)));
+//     }
+//     return result;
+// }
 
+function splitString (string, size) {
+    var re = new RegExp('.{1,' + size + '}', 'g');
+    return string.match(re);
+}
 // END OF HTTP NODE CODE
