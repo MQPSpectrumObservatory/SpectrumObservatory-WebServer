@@ -223,10 +223,9 @@ function process_request(res, req) {
 
         let binary_string = textToBin(payloadData)
 
-        const bin_array_in_chunks = splitString(binary_string, 1024)
+        const bin_array_in_chunks = splitString(binary_string, 65536)
 
-        console.log(binary_string)
-
+        //console.log(binary_string)
         let i
         for(i = 0; i < bin_array_in_chunks.length; i++){
             convertBinToCSV(req, bin_array_in_chunks[i], i, metadata_line)
