@@ -2,15 +2,14 @@
 TODO: 
   Implement worker pool so event loop is not blocked
   Create documentation
-  Possible revision of pathname parsing?
   Setup server to run on default port 80
 */
 
 /* Global Variables */
-const http = require('http')
-const fs = require('fs')
-const url = require('url')
-const path = require('path')
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
+const url = require('url');
 
 const port = 5000;
 
@@ -25,8 +24,10 @@ const mime = {
     js:   'application/javascript'
 };
 
-let bindata = '';
-let freqVal = 900000000; // default frequency value (set at 900MHz)
+let freqVal1 = '900000000'; // default frequency value (set at 900MHz) - radio1
+let freqVal2 = '900000000'; // default frequency value (set at 900MHz) - radio2
+let freqVal3 = '900000000'; // default frequency value (set at 900MHz) - radio3
+let freqVal4 = '900000000'; // default frequency value (set at 900MHz) - radio4
 
 
 /* HTTP Server Processing & Event Loop */
@@ -53,31 +54,30 @@ const server = http.createServer(function (req, res) {
             });
 
             s.on('error', function () {
-                const uri = url.parse(req.url);
-                console.log(uri.pathname);
-                switch (uri.pathname) {
-
+                const pathname = url.parse(req.url).pathname;
+                console.log(pathname);
+                switch (pathname) {
                     case '/freq1':
                         console.log("Sending frequency request on /freq1");
-                        res.end(freqVal);
+                        res.end(freqVal1);
                         sendCode(res, 200, "OK");
                         break;
+
                     case '/freq2':
-
                         console.log("Sending frequency request on /freq2");
-                        res.end(freqVal);
+                        res.end(freqVal2);
                         sendCode(res, 200, "OK");
                         break;
-                    case '/freq3':
 
+                    case '/freq3':
                         console.log("Sending frequency request on /freq3");
-                        res.end(freqVal);
+                        res.end(freqVal3);
                         sendCode(res, 200, "OK");
                         break;
 
                     case '/freq4':
                         console.log("Sending frequency request on /freq4");
-                        res.end(freqVal);
+                        res.end(freqVal4);
                         sendCode(res, 200, "OK");
                         break;
 
@@ -89,62 +89,83 @@ const server = http.createServer(function (req, res) {
             break;
 
         case "POST":
-            console.log(url.parse(req.url).pathname);
-            if (req.url.startsWith('/data')) {
-                process_request(res, req)
-            } else if (req.url === '/post1') {
-                
-                let freq = '';
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
+            // Get pathname POSTED to
+            const pathname = url.parse(req.url).pathname;
+            console.log(pathname);
+
+            if (pathname.startsWith('/data')) {
+                let reqBody = '';
+                req.on('data', function (data) {
+                    reqBody += data;
+                    if (reqBody.length > 1e7 /*10MB*/ ) {
+                        sendCode(res, 413, "Request too large");
+                    }
                 });
-                req.on('end', () => {
-                    freqVal = freq.toString();
-                    console.log("Logged a frequence of %s on Post1", freqVal);
+                req.on('end', function () {
                     sendCode(res, 200, "OK");
-                });
-
-            } else if (req.url === '/post2') {
-
-                let freq = '';
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                });
-                req.on('end', () => {
-                    freqVal = freq.toString();
-                    console.log("Logged a frequence of %s on Post2", freqVal);
-                    sendCode(res, 200, "OK");
-                });
-
-            } else if (req.url === '/post3') {
-
-                let freq = '';
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                });
-                req.on('end', () => {
-                    freqVal = freq.toString();
-                    console.log("Logged a frequence of %s on Post3", freqVal);
-                    sendCode(res, 200, "OK");
-                });
-
-            } else if (req.url === '/post4') {
-
-                let freq = '';
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                });
-                req.on('end', () => {
-                    freqVal = freq.toString();
-                    console.log("Logged a frequence of %s on Post4", freqVal);
-                    sendCode(res, 200, "OK");
+                    console.log("Received %d bytes", req.socket.bytesRead);
+                    process_request(pathname, reqBody); // TODO: need to offload this function to a worker thread
                 });
 
             } else {
-                console.log("Client requested %s and invoked 404", url.parse(req.url).pathname);
-                sendCode(res, 404, "Not found");
-            }
+
+            let freq;
+            switch (pathname) {
+                case '/post1':
+                    freq = '';
+                    req.on('data', function (rcdata) {
+                        freq += rcdata;
+                    });
+                    req.on('end', () => {
+                        freqVal1 = freq.toString();
+                        console.log("Logged a frequence of %s on Post1", freqVal1);
+                        sendCode(res, 200, "OK");
+                    });
+                    break;
+
+                case '/post2':
+                    freq = '';
+                    req.on('data', function (rcdata) {
+                        freq += rcdata;
+                    });
+                    req.on('end', () => {
+                        freqVal2 = freq.toString();
+                        console.log("Logged a frequence of %s on Post2", freqVal2);
+                        sendCode(res, 200, "OK");
+                    });
+                    break;
+
+                case '/post3':
+                    freq = '';
+                    req.on('data', function (rcdata) {
+                        freq += rcdata;
+                    });
+                    req.on('end', () => {
+                        freqVal3 = freq.toString();
+                        console.log("Logged a frequence of %s on Post3", freqVal3);
+                        sendCode(res, 200, "OK");
+                    });
+                    break;
+
+                case '/post4':
+                    freq = '';
+                    req.on('data', function (rcdata) {
+                        freq += rcdata;
+                    });
+                    req.on('end', () => {
+                        freqVal = freq.toString();
+                        console.log("Logged a frequence of %s on Post1", freqVal);
+                        sendCode(res, 200, "OK");
+                    });
+                    break;
+
+                default:
+                    console.log("Client posted to %s and invoked 404", url.parse(req.url).pathname);
+                    sendCode(res, 404, "Not found");
+                    break;
+            }}
             break;
+        
         default:
             sendCode(res, 405, "Incorrect Method");
             break;
@@ -170,7 +191,7 @@ const arrayToCSV = (arr, delimiter = ',') =>
         )
         .join('\n');
 
-const zeroPad = (num, places) => String(num).padStart(places, '0');
+const zeroPad = (num, places = 8) => String(num).padStart(places, '0');
 
 function textToBin(text, byteSizePerArray) {
     var txt = new Buffer.from(text, 'base64').toString('binary');
@@ -189,7 +210,7 @@ function sendFile(res, filename, contentType) {
 
     fs.readFile(filename, function (error, content) {
         res.writeHead(200, {'Content-type': contentType});
-        res.end(content, 'utf-8')
+        res.end(content, 'utf-8');
     })
 }
 
@@ -197,68 +218,51 @@ function sendCode(res, code, msg) {
     fs.readFile('public/status/' + code + '.html', function (error, content) {
         if (error) throw error;
         res.writeHead(code, msg, {'Content-type': 'text/html'});
-        res.end(content, 'utf-8')
+        res.end(content, 'utf-8');
     })
 }
 
-function process_request(res, req) {
-    let reqBody = '';
-    req.on('data', function (data) {
-        reqBody += data;
-        if (reqBody.length > 1e7) {
-            sendCode(res, 413, "Request too large");
-        }
-    });
+function process_request(pathname, reqBody) {
+    console.log("Extract data");
 
-    req.on('end', function () {
-        sendCode(res, 200, "OK");
+    const number = reqBody.indexOf("{");
+    reqBody = reqBody.substring(number);
+    var jsonData = JSON.parse(reqBody);
 
-        console.log("Received %d bytes", req.socket.bytesRead);
+    const payloadData = jsonData.payload;
+    const metadata = jsonData.metadata;
 
-        console.log("Extract request data");
+    let rx_time =  metadata[0].rx_time;
+    let rx_sample = metadata[0].rx_sample;
+    let num_samples =  metadata[0].num_samples;
+    let radio_num =  metadata[0].radio_num;
+    let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num;
 
-        const number = reqBody.indexOf("{");
-        reqBody = reqBody.substring(number);
-        var jsonData = JSON.parse(reqBody);
+    console.log("Converting radio data to binary string");
+    let binary_string = textToBin(payloadData);
 
-        const payloadData = jsonData.payload;
-        const metadata = jsonData.metadata;
+    console.log("Splitting binary string into 1024 sample chunks");
+    const bin_array_in_chunks = splitString(binary_string, 65536);
 
-        let rx_time =  metadata[0].rx_time;
-        let rx_sample = metadata[0].rx_sample;
-        let num_samples =  metadata[0].num_samples;
-        let radio_num =  metadata[0].radio_num;
-        let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num;
-
-        console.log("Converting radio data to binary string");
-        let binary_string = textToBin(payloadData);
-
-        console.log("Splitting binary string into 1024 sample chunks");
-        const bin_array_in_chunks = splitString(binary_string, 65536);
-
-        for(let i = 0; i < bin_array_in_chunks.length; i++){
-            convertBinToCSV(req, bin_array_in_chunks[i], i, metadata_line)
-        }
-    });
+    let i;
+    for(i = 0; i < bin_array_in_chunks.length; i++){
+        convertBinToCSV(pathname, bin_array_in_chunks[i], i, metadata_line);
+    }
+    console.log("%d CSV file(s) written", i);
 }
 
-function convertBinToCSV(req, binary_string, index, metadata_line) {
-    console.log("Formatting to CSV format")
-    const bin_array = Arraycreator(binary_string)
+function convertBinToCSV(pathname, binary_string, index, metadata_line) {
+    const bin_array = Arraycreator(binary_string);
 
-    bindata = arrayToCSV(bin_array);
+    let bindata = arrayToCSV(bin_array);
 
-    let finaldata = metadata_line + "\n" + bindata
+    let finaldata = metadata_line + "\n" + bindata;
 
-    let new_file_name = req.url.toString() + '_' + index.toString() + '.csv'
-
-    console.log("Writing " + new_file_name)
+    let new_file_name = pathname + '_' + index.toString() + '.csv';
 
     fs.writeFile('public/data' + new_file_name, finaldata, function (err) { // data.csv directory is nested in public -JRM
         if (err) return console.log(err);
     });
-
-    console.log("CSV writing complete!");
 }
 
 function splitString (string, size) {
