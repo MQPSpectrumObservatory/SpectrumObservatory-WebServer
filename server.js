@@ -1,27 +1,159 @@
+/* 
+TODO: 
+  Implement worker pool so event loop is not blocked
+  Create documentation
+  Possible revision of pathname parsing?
+  Setup server to run on default port 80
+*/
+
+/* Global Variables */
 const http = require('http')
-    , fs = require('fs')
-    , qs = require("querystring")
-    , url = require('url')
-    , path = require('path')
-    , port = 5000;
+const fs = require('fs')
+const url = require('url')
+const path = require('path')
 
-// const express = require('express');
-// const bodyParser = require(
-//     'body-parser');
-// const app = express();
+const port = 5000;
 
-var mime = {
+const mime = {
     html: 'text/html',
-    txt: 'text/plain',
-    css: 'text/css',
-    gif: 'image/gif',
-    jpg: 'image/jpeg',
-    png: 'image/png',
-    svg: 'image/svg+xml',
-    js: 'application/javascript'
+    txt:  'text/plain',
+    css:  'text/css',
+    gif:  'image/gif',
+    jpg:  'image/jpeg',
+    png:  'image/png',
+    svg:  'image/svg+xml',
+    js:   'application/javascript'
 };
 
-// Optimized this function to split the data into arrays more effectively -JRM
+let bindata = '';
+let freqVal = 900000000; // default frequency value (set at 900MHz)
+
+
+/* HTTP Server Processing & Event Loop */
+const server = http.createServer(function (req, res) {
+
+    switch (req.method) {
+        case "GET":
+            var dir = path.join(__dirname, 'public');
+            var req_path = req.url.toString().split('?')[0];
+            var filteredPath = req_path.replace(/\/$/, '/index.html');
+            var file = path.join(dir, filteredPath);
+
+            if (file.indexOf(dir + path.sep) !== 0) {
+                sendCode(res, 403, "403 forbidden");
+                break;
+            }
+
+            var type = mime[path.extname(file).slice(1)] || 'text/plain';
+            var s = fs.createReadStream(file);
+
+            s.on('open', function () {
+                res.setHeader('Content-Type', type);
+                s.pipe(res);
+            });
+
+            s.on('error', function () {
+                const uri = url.parse(req.url);
+                console.log(uri.pathname);
+                switch (uri.pathname) {
+
+                    case '/freq1':
+                        console.log("Sending frequency request on /freq1");
+                        res.end(freqVal);
+                        sendCode(res, 200, "OK");
+                        break;
+                    case '/freq2':
+
+                        console.log("Sending frequency request on /freq2");
+                        res.end(freqVal);
+                        sendCode(res, 200, "OK");
+                        break;
+                    case '/freq3':
+
+                        console.log("Sending frequency request on /freq3");
+                        res.end(freqVal);
+                        sendCode(res, 200, "OK");
+                        break;
+
+                    case '/freq4':
+                        console.log("Sending frequency request on /freq4");
+                        res.end(freqVal);
+                        sendCode(res, 200, "OK");
+                        break;
+
+                    default:
+                        sendCode(res, 404, "404 not found");
+                        break;
+                }
+            });
+            break;
+
+        case "POST":
+            console.log(url.parse(req.url).pathname);
+            if (req.url.startsWith('/data')) {
+                process_request(res, req)
+            } else if (req.url === '/post1') {
+                
+                let freq = '';
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                });
+                req.on('end', () => {
+                    freqVal = freq.toString();
+                    console.log("Logged a frequence of %s on Post1", freqVal);
+                    sendCode(res, 200, "OK");
+                });
+
+            } else if (req.url === '/post2') {
+
+                let freq = '';
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                });
+                req.on('end', () => {
+                    freqVal = freq.toString();
+                    console.log("Logged a frequence of %s on Post2", freqVal);
+                    sendCode(res, 200, "OK");
+                });
+
+            } else if (req.url === '/post3') {
+
+                let freq = '';
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                });
+                req.on('end', () => {
+                    freqVal = freq.toString();
+                    console.log("Logged a frequence of %s on Post3", freqVal);
+                    sendCode(res, 200, "OK");
+                });
+
+            } else if (req.url === '/post4') {
+
+                let freq = '';
+                req.on('data', function (rcdata) {
+                    freq += rcdata;
+                });
+                req.on('end', () => {
+                    freqVal = freq.toString();
+                    console.log("Logged a frequence of %s on Post4", freqVal);
+                    sendCode(res, 200, "OK");
+                });
+
+            } else {
+                console.log("Client requested %s and invoked 404", url.parse(req.url).pathname);
+                sendCode(res, 404, "Not found");
+            }
+            break;
+        default:
+            sendCode(res, 405, "Incorrect Method");
+            break;
+    }
+}).listen(port);
+console.log("Server started on port %d", port);
+
+
+/* Helper Functions */
 function Arraycreator(byte) {
     const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
     const newArr = [];
@@ -38,7 +170,6 @@ const arrayToCSV = (arr, delimiter = ',') =>
         )
         .join('\n');
 
-// fixed decoding and padding issue -JRM
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 
 function textToBin(text, byteSizePerArray) {
@@ -52,122 +183,6 @@ function textToBin(text, byteSizePerArray) {
 
     return output.join("");
 }
-
-
-let bindata = '';
-let number = 0;
-// START OF NODE HTTP CODE
-
-const server = http.createServer(function (req, res) {
-    console.log(req)
-    switch (req.method) {
-        case "GET":
-            var dir = path.join(__dirname, 'public');
-            var req_path = req.url.toString().split('?')[0];
-            var filteredPath = req_path.replace(/\/$/, '/index.html');
-
-            var file = path.join(dir, filteredPath);
-            if (file.indexOf(dir + path.sep) !== 0) {
-                sendCode(res, 403, "403 forbidden");
-                break;
-            }
-            var type = mime[path.extname(file).slice(1)] || 'text/plain';
-            var s = fs.createReadStream(file);
-            s.on('open', function () {
-                res.setHeader('Content-Type', type);
-                s.pipe(res);
-            });
-
-            s.on('error', function () {
-                const uri = url.parse(req.url);
-                switch (uri.pathname) {
-                    case '/freq1':
-                        console.log("sending freq value");
-                        res.end(number);
-                        sendCode(res, 200, "OK");
-                        break;
-                    case '/freq2':
-                        console.log("sending freq value");
-                        res.end(number);
-                        sendCode(res, 200, "OK");
-                        break;
-                    case '/freq3':
-                        console.log("sending freq value");
-                        res.end(number);
-                        sendCode(res, 200, "OK");
-                        break;
-                    case '/freq4':
-                        console.log("sending freq value");
-                        res.end(number);
-                        sendCode(res, 200, "OK");
-                        break;
-                    default:
-                        sendCode(res, 404, "404 not found");
-                        break;
-                }
-            });
-            break;
-        case "POST":
-            console.log(url.parse(req.url).pathname);
-            if (req.url.startsWith('/data')) {
-                process_request(res, req)
-            } else if (req.url === '/post1') {
-
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                    console.log("the value of freq =" + "" + freq)
-                });
-                req.on('end', function () {
-                    console.log('finished getting frequency')
-                    number = freq.toString();
-                })
-
-            } else if (req.url === '/post2') {
-
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                    console.log("the value of freq =" + "" + freq)
-                });
-                req.on('end', function () {
-                    console.log('finished getting frequency')
-                    number = freq.toString();
-                })
-
-            } else if (req.url === '/post3') {
-
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                    console.log("the value of freq =" + "" + freq)
-                });
-                req.on('end', function () {
-                    console.log('finished getting frequency')
-                    number = freq.toString();
-                })
-
-            } else if (req.url === '/post4') {
-
-                req.on('data', function (rcdata) {
-                    freq += rcdata;
-                    console.log("the value of freq =" + "" + freq)
-                });
-                req.on('end', function () {
-                    console.log('finished getting frequency')
-                    number = freq.toString();
-                })
-
-            } else {
-                console.log(url.parse(req.url).pathname);
-                sendCode(res, 404, "Not found");
-            }
-            break;
-        default:
-            sendCode(res, 405, "Incorrect Method");
-            break;
-    }
-});
-
-server.listen(port);
-console.log('listening on ' + port);
 
 function sendFile(res, filename, contentType) {
     contentType = contentType || 'text/html';
@@ -189,56 +204,46 @@ function sendCode(res, code, msg) {
 function process_request(res, req) {
     let reqBody = '';
     req.on('data', function (data) {
-        console.log(req.socket.bytesRead + " bytes");
-        console.log("receiving data batches...")
         reqBody += data;
         if (reqBody.length > 1e7) {
             sendCode(res, 413, "Request too large");
         }
-        sendCode(res, 200, "OK"); // Server needs to respond to the data transfer client -JRM
     });
 
     req.on('end', function () {
-        console.log("finished receiving all batches");
-        console.log(req.socket.bytesRead + " final bytes");
+        sendCode(res, 200, "OK");
 
-        console.log("extracting payload data...");
+        console.log("Received %d bytes", req.socket.bytesRead);
+
+        console.log("Extract request data");
 
         const number = reqBody.indexOf("{");
         reqBody = reqBody.substring(number);
         var jsonData = JSON.parse(reqBody);
+
         const payloadData = jsonData.payload;
-        const met = jsonData.metadata;
-        console.log("JSON DATA ")
-        console.log("==============================")
-        console.log(met);
-        let rx_time =  met[0].rx_time
-        let rx_sample = met[0].rx_sample
-        let num_samples =  met[0].num_samples
-        let radio_num =  met[0].radio_num
+        const metadata = jsonData.metadata;
 
-        let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num
-        console.log(metadata_line)
-        console.log("converting payload to binary data")
+        let rx_time =  metadata[0].rx_time;
+        let rx_sample = metadata[0].rx_sample;
+        let num_samples =  metadata[0].num_samples;
+        let radio_num =  metadata[0].radio_num;
+        let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num;
 
-        let binary_string = textToBin(payloadData)
+        console.log("Converting radio data to binary string");
+        let binary_string = textToBin(payloadData);
 
-        const bin_array_in_chunks = splitString(binary_string, 65536)
+        console.log("Splitting binary string into 1024 sample chunks");
+        const bin_array_in_chunks = splitString(binary_string, 65536);
 
-        //console.log(binary_string)
-        let i
-        for(i = 0; i < bin_array_in_chunks.length; i++){
+        for(let i = 0; i < bin_array_in_chunks.length; i++){
             convertBinToCSV(req, bin_array_in_chunks[i], i, metadata_line)
         }
-
-        // convertBinToCSV_old(req, binary_string_array.join(""), metadata_line)
-
     });
 }
 
 function convertBinToCSV(req, binary_string, index, metadata_line) {
-    console.log("converting binary data to CSV format...")
-
+    console.log("Formatting to CSV format")
     const bin_array = Arraycreator(binary_string)
 
     bindata = arrayToCSV(bin_array);
@@ -247,7 +252,7 @@ function convertBinToCSV(req, binary_string, index, metadata_line) {
 
     let new_file_name = req.url.toString() + '_' + index.toString() + '.csv'
 
-    console.log("writing " + new_file_name + " CSV file...")
+    console.log("Writing " + new_file_name)
 
     fs.writeFile('public/data' + new_file_name, finaldata, function (err) { // data.csv directory is nested in public -JRM
         if (err) return console.log(err);
@@ -255,38 +260,8 @@ function convertBinToCSV(req, binary_string, index, metadata_line) {
 
     console.log("CSV writing complete!");
 }
-
-
-function convertBinToCSV_old(req, binary_string, metadata_line) {
-    console.log("converting binary data to CSV format...")
-
-    const bin_array = Arraycreator(binary_string)
-
-    bindata = arrayToCSV(bin_array);
-
-    let finaldata = metadata_line + "\n" + bindata
-
-    let new_file_name = req.url.toString() + '.csv'
-
-    console.log("writing " + new_file_name + " CSV file...")
-
-    fs.writeFile('public/data' + new_file_name, finaldata, function (err) { // data.csv directory is nested in public -JRM
-        if (err) return console.log(err);
-    });
-
-    console.log("CSV writing complete!");
-}
-
-// function splitToChunks(array, parts) {
-//     let result = [];
-//     for (let i = parts; i > 0; i--) {
-//         result.push(array.splice(0, Math.ceil(array.length / i)));
-//     }
-//     return result;
-// }
 
 function splitString (string, size) {
     var re = new RegExp('.{1,' + size + '}', 'g');
     return string.match(re);
 }
-// END OF HTTP NODE CODE
