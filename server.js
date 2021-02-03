@@ -10,6 +10,7 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const url = require('url');
+const {Worker} = require('worker_threads');
 
 const port = 5000;
 
@@ -35,24 +36,26 @@ const server = http.createServer(function (req, res) {
 
     switch (req.method) {
         case "GET":
-            var dir = path.join(__dirname, 'public');
-            var req_path = req.url.toString().split('?')[0];
-            var filteredPath = req_path.replace(/\/$/, '/index.html');
-            var file = path.join(dir, filteredPath);
+            // Filter and format path name and serve any static file matching
+            let dir = path.join(__dirname, 'public');
+            let req_path = req.url.toString().split('?')[0];
+            let filteredPath = req_path.replace(/\/$/, '/index.html');
+            let file = path.join(dir, filteredPath);
 
             if (file.indexOf(dir + path.sep) !== 0) {
                 sendCode(res, 403, "403 forbidden");
                 break;
             }
 
-            var type = mime[path.extname(file).slice(1)] || 'text/plain';
-            var s = fs.createReadStream(file);
+            let type = mime[path.extname(file).slice(1)] || 'text/plain';
+            let s = fs.createReadStream(file);
 
             s.on('open', function () {
                 res.setHeader('Content-Type', type);
                 s.pipe(res);
             });
 
+            // if not serving static file/directory
             s.on('error', function () {
                 const pathname = url.parse(req.url).pathname;
                 console.log(pathname);
@@ -82,6 +85,7 @@ const server = http.createServer(function (req, res) {
                         break;
 
                     default:
+                        console.log("Client made GET to %s and invoked 404", url.parse(req.url).pathname);
                         sendCode(res, 404, "404 not found");
                         break;
                 }
@@ -104,7 +108,7 @@ const server = http.createServer(function (req, res) {
                 req.on('end', function () {
                     sendCode(res, 200, "OK");
                     console.log("Received %d bytes", req.socket.bytesRead);
-                    process_request(pathname, reqBody); // TODO: need to offload this function to a worker thread
+                    processData(pathname, reqBody).then(console.log("Worker finished"));
                 });
 
             } else {
@@ -118,7 +122,7 @@ const server = http.createServer(function (req, res) {
                     });
                     req.on('end', () => {
                         freqVal1 = freq.toString();
-                        console.log("Logged a frequence of %s on Post1", freqVal1);
+                        console.log("Logged a frequence of %s on /post1", freqVal1);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -130,7 +134,7 @@ const server = http.createServer(function (req, res) {
                     });
                     req.on('end', () => {
                         freqVal2 = freq.toString();
-                        console.log("Logged a frequence of %s on Post2", freqVal2);
+                        console.log("Logged a frequence of %s on /post2", freqVal2);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -142,7 +146,7 @@ const server = http.createServer(function (req, res) {
                     });
                     req.on('end', () => {
                         freqVal3 = freq.toString();
-                        console.log("Logged a frequence of %s on Post3", freqVal3);
+                        console.log("Logged a frequence of %s on /post3", freqVal3);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -154,13 +158,13 @@ const server = http.createServer(function (req, res) {
                     });
                     req.on('end', () => {
                         freqVal = freq.toString();
-                        console.log("Logged a frequence of %s on Post1", freqVal);
+                        console.log("Logged a frequence of %s on /post4", freqVal);
                         sendCode(res, 200, "OK");
                     });
                     break;
 
                 default:
-                    console.log("Client posted to %s and invoked 404", url.parse(req.url).pathname);
+                    console.log("Client made POST to %s and invoked 404", url.parse(req.url).pathname);
                     sendCode(res, 404, "Not found");
                     break;
             }}
@@ -171,39 +175,21 @@ const server = http.createServer(function (req, res) {
             break;
     }
 }).listen(port);
-console.log("Server started on port %d", port);
-
+console.log("Server started on port %d\n", port);
 
 /* Helper Functions */
-function Arraycreator(byte) {
-    const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
-    const newArr = [];
-    while (inArray.length) {
-        newArr.push(inArray.splice(0, 2));
-    }
-    return newArr;
-}
-
-const arrayToCSV = (arr, delimiter = ',') =>
-    arr
-        .map(v =>
-            v.map(x => (isNaN(x) ? `"${x.replace(/"/g, '""')}"` : x)).join(delimiter)
-        )
-        .join('\n');
-
-const zeroPad = (num, places = 8) => String(num).padStart(places, '0');
-
-function textToBin(text, byteSizePerArray) {
-    var txt = new Buffer.from(text, 'base64').toString('binary');
-    var output = [];
-
-    for (var i = 0; i < txt.length; i++) {
-        var bin = txt[i].charCodeAt().toString(2);
-        output.push(Array(bin.length + 1).join('') + zeroPad(bin, 8));
-    }
-
-    return output.join("");
-}
+// Spawn a worker thread that runs the file worker.js
+function processData(pathname, reqBody) {
+    return new Promise((resolve, reject) => {
+        const worker = new Worker('./worker.js', { workerData: { pathname, reqBody } });
+        worker.on('message', resolve);
+        worker.on('error',   reject);
+        worker.on('exit', (code) => { 
+            if (code !== 0) 
+                reject(new Error(`Worker stopped with exit code ${code}`)); 
+        });
+    });
+};
 
 function sendFile(res, filename, contentType) {
     contentType = contentType || 'text/html';
@@ -220,52 +206,4 @@ function sendCode(res, code, msg) {
         res.writeHead(code, msg, {'Content-type': 'text/html'});
         res.end(content, 'utf-8');
     })
-}
-
-function process_request(pathname, reqBody) {
-    console.log("Extract data");
-
-    const number = reqBody.indexOf("{");
-    reqBody = reqBody.substring(number);
-    var jsonData = JSON.parse(reqBody);
-
-    const payloadData = jsonData.payload;
-    const metadata = jsonData.metadata;
-
-    let rx_time =  metadata[0].rx_time;
-    let rx_sample = metadata[0].rx_sample;
-    let num_samples =  metadata[0].num_samples;
-    let radio_num =  metadata[0].radio_num;
-    let metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num;
-
-    console.log("Converting radio data to binary string");
-    let binary_string = textToBin(payloadData);
-
-    console.log("Splitting binary string into 1024 sample chunks");
-    const bin_array_in_chunks = splitString(binary_string, 65536);
-
-    let i;
-    for(i = 0; i < bin_array_in_chunks.length; i++){
-        convertBinToCSV(pathname, bin_array_in_chunks[i], i, metadata_line);
-    }
-    console.log("%d CSV file(s) written", i);
-}
-
-function convertBinToCSV(pathname, binary_string, index, metadata_line) {
-    const bin_array = Arraycreator(binary_string);
-
-    let bindata = arrayToCSV(bin_array);
-
-    let finaldata = metadata_line + "\n" + bindata;
-
-    let new_file_name = pathname + '_' + index.toString() + '.csv';
-
-    fs.writeFile('public/data' + new_file_name, finaldata, function (err) { // data.csv directory is nested in public -JRM
-        if (err) return console.log(err);
-    });
-}
-
-function splitString (string, size) {
-    var re = new RegExp('.{1,' + size + '}', 'g');
-    return string.match(re);
 }
