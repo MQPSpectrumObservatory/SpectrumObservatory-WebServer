@@ -1,11 +1,9 @@
 /* 
-TODO: 
-  Implement worker pool so event loop is not blocked
-  Create documentation
+TODO:
   Setup server to run on default port 80
 */
 
-/* Global Variables */
+/* ---- Global Variables ---- */
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -31,11 +29,14 @@ let freqVal3 = '900000000'; // default frequency value (set at 900MHz) - radio3
 let freqVal4 = '900000000'; // default frequency value (set at 900MHz) - radio4
 
 
-/* HTTP Server Processing & Event Loop */
+/* ---- HTTP Server Processing & Event Loop ---- */
 const server = http.createServer(function (req, res) {
 
+    const pathname = url.parse(req.url).pathname;
     switch (req.method) {
         case "GET":
+            console.log("GET: %s", pathname);
+
             // Filter and format path name and serve any static file matching
             let dir = path.join(__dirname, 'public');
             let req_path = req.url.toString().split('?')[0];
@@ -57,8 +58,6 @@ const server = http.createServer(function (req, res) {
 
             // if not serving static file/directory
             s.on('error', function () {
-                const pathname = url.parse(req.url).pathname;
-                console.log(pathname);
                 switch (pathname) {
                     case '/freq1':
                         console.log("Sending frequency request on /freq1");
@@ -93,10 +92,9 @@ const server = http.createServer(function (req, res) {
             break;
 
         case "POST":
-            // Get pathname POSTED to
-            const pathname = url.parse(req.url).pathname;
-            console.log(pathname);
+            console.log("POST: %s", pathname);
 
+            // Data upload handling (full pathname is used in filename)
             if (pathname.startsWith('/data')) {
                 let reqBody = '';
                 req.on('data', function (data) {
@@ -108,6 +106,7 @@ const server = http.createServer(function (req, res) {
                 req.on('end', function () {
                     sendCode(res, 200, "OK");
                     console.log("Received %d bytes", req.socket.bytesRead);
+                    // This function returns a promise that resolves when its worker thread finishes
                     processData(pathname, reqBody).then(console.log("Worker finished"));
                 });
 
@@ -177,7 +176,7 @@ const server = http.createServer(function (req, res) {
 }).listen(port);
 console.log("Server started on port %d\n", port);
 
-/* Helper Functions */
+/* ---- Helper Functions ---- */
 // Spawn a worker thread that runs the file worker.js
 function processData(pathname, reqBody) {
     return new Promise((resolve, reject) => {
@@ -190,15 +189,6 @@ function processData(pathname, reqBody) {
         });
     });
 };
-
-function sendFile(res, filename, contentType) {
-    contentType = contentType || 'text/html';
-
-    fs.readFile(filename, function (error, content) {
-        res.writeHead(200, {'Content-type': contentType});
-        res.end(content, 'utf-8');
-    })
-}
 
 function sendCode(res, code, msg) {
     fs.readFile('public/status/' + code + '.html', function (error, content) {

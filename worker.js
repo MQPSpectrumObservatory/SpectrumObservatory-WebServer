@@ -4,13 +4,13 @@ const {pathname, reqBody} = workerData;
 
 /* ---- Main Worker Loop ---- */
 
-// Parsing JSON
+// Parsing JSON and extract fields
 const jsonData = JSON.parse(reqBody);
 
 const payloadData = jsonData.payload;
 const metadata = jsonData.metadata;
 
-// Formatting metadata
+// Formatting metadata for CSV file
 const rx_time =  metadata.rx_time;
 const rx_sample = metadata.rx_sample;
 const num_samples =  metadata.num_samples;
@@ -34,10 +34,10 @@ parentPort.postMessage({filename: workerData, status: 'Done'});
 
 /* ---- Helper functions ---- */
 function Arraycreator(byte) {
-    const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g'));
+    const inArray = byte.match(new RegExp('.{1,' + 32 + '}', 'g')); // split every 32 characters into a index in array
     const newArr = [];
     while (inArray.length) {
-        newArr.push(inArray.splice(0, 2));
+        newArr.push(inArray.splice(0, 2)); // split every two array indecies into sub-array
     }
     return newArr;
 }
@@ -54,7 +54,8 @@ function zeroPad(num, places = 8) {
     return String(num).padStart(places, '0');
 }
 
-function textToBin(text, byteSizePerArray) {
+// Decodes the data out of Base64 and converts to a binary string
+function textToBin(text) {
     let txt = new Buffer.from(text, 'base64').toString('binary');
     let output = [];
 
