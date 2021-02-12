@@ -1,17 +1,17 @@
-/* 
-TODO:
-  Setup server to run on default port 80
-*/
-
 /* ---- Global Variables ---- */
+// Default packages
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const url = require('url');
 const {Worker} = require('worker_threads');
 
-const port = 5000;
+// Third party npm packages
+const finalhandler = require('finalhandler');
+const serveIndex = require('serve-index');
+const serveStatic = require('serve-static');
 
+const port = 5000;
 const mime = {
     html: 'text/html',
     txt:  'text/plain',
@@ -23,10 +23,15 @@ const mime = {
     js:   'application/javascript'
 };
 
-let freqVal1 = '900000000'; // default frequency value (set at 900MHz) - radio1
-let freqVal2 = '900000000'; // default frequency value (set at 900MHz) - radio2
-let freqVal3 = '900000000'; // default frequency value (set at 900MHz) - radio3
-let freqVal4 = '900000000'; // default frequency value (set at 900MHz) - radio4
+// Point to the static directory to serve
+const index = serveIndex('public');
+const serve = serveStatic('public');
+
+// Hold radio frequency values for remote control
+let freqVal1 = '900000000';
+let freqVal2 = '900000000';
+let freqVal3 = '900000000';
+let freqVal4 = '900000000';
 
 
 /* ---- HTTP Server Processing & Event Loop ---- */
@@ -81,6 +86,15 @@ const server = http.createServer(function (req, res) {
                         console.log("Sending frequency request on /freq4");
                         res.end(freqVal4);
                         sendCode(res, 200, "OK");
+                        break;
+
+                    // Called when front-end requests contents of public/data
+                    case '/data/':
+                        const done = finalhandler(req, res);    // handler to write response
+                        serve(req, res, function onNext(err) {  // serve the indexes of the files in directory
+                            if (err) return done(err);
+                            index(req, res, done);
+                        })
                         break;
 
                     default:
