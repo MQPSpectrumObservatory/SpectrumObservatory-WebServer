@@ -75,7 +75,8 @@ function convertBinToCSV(pathname, binary_string, index, metadata_line) {
 
     let finaldata = metadata_line + "\n" + bindata;
 
-    let new_file_name = 'data' + index.toString() + '.csv';
+    // file format is data###.csv where ### is a 3 digit number representing the index of the current file
+    let new_file_name = 'data' + index.toString().padStart(3, '0') + '.csv';
 
     fs.writeFile(`public/data${radio_num}/` + new_file_name, finaldata, function (err) {
         if (err) return console.log(err);
