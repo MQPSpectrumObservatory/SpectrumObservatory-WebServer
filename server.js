@@ -145,7 +145,9 @@ const server = http.createServer(function (req, res) {
                         // Need to remove "CenterFreq="
                         freqVal1 = freq.toString().split("=")[1];
                         console.log("Logged a frequency of %s on /post1", freqVal1);
-                        sendCode(res, 200, "OK");
+                        // Respond with "204 No Content" to avoid page redirecting
+                        res.writeHead(204)
+                        res.end()
                     });
                     break;
 
@@ -157,7 +159,8 @@ const server = http.createServer(function (req, res) {
                     req.on('end', () => {
                         freqVal2 = freq.toString().split("=")[1];
                         console.log("Logged a frequency of %s on /post2", freqVal2);
-                        sendCode(res, 200, "OK");
+                        res.writeHead(204)
+                        res.end()
                     });
                     break;
 
@@ -169,7 +172,8 @@ const server = http.createServer(function (req, res) {
                     req.on('end', () => {
                         freqVal3 = freq.toString().split("=")[1];
                         console.log("Logged a frequency of %s on /post3", freqVal3);
-                        sendCode(res, 200, "OK");
+                        res.writeHead(204)
+                        res.end()
                     });
                     break;
 
@@ -181,7 +185,8 @@ const server = http.createServer(function (req, res) {
                     req.on('end', () => {
                         freqVal = freq.toString().split("=")[1];
                         console.log("Logged a frequency of %s on /post4", freqVal);
-                        sendCode(res, 200, "OK");
+                        res.writeHead(204)
+                        res.end()
                     });
                     break;
 
