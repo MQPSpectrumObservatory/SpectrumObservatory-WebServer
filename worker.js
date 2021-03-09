@@ -13,9 +13,9 @@ const metadata = jsonData.metadata;
 // Formatting metadata for CSV file
 const rx_time =  metadata.rx_time;
 const rx_sample = metadata.rx_sample;
-const num_samples =  metadata.num_samples;
+const rx_freq =  metadata.rx_freq;
 const radio_num =  metadata.radio_num;
-const metadata_line = rx_time + "," + rx_sample + "\n" + num_samples + "," + radio_num;
+const metadata_line = rx_time + "," + rx_sample + "\n" + rx_freq + "," + radio_num;
 
 // Convert data payload to binary string
 const binary_string = textToBin(payloadData);
@@ -75,9 +75,9 @@ function convertBinToCSV(pathname, binary_string, index, metadata_line) {
 
     let finaldata = metadata_line + "\n" + bindata;
 
-    let new_file_name = pathname + '_' + index.toString() + '.csv';
+    let new_file_name = 'data' + index.toString() + '.csv';
 
-    fs.writeFile('public/data' + new_file_name, finaldata, function (err) {
+    fs.writeFile(`public/data${radio_num}/` + new_file_name, finaldata, function (err) {
         if (err) return console.log(err);
     });
 }

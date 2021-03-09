@@ -116,4 +116,5 @@ dist
 .pnp.*
 
 # Custom data CSVs
-public/data/*.csv
+public/data1/*.csv
+public/data2/*.csv

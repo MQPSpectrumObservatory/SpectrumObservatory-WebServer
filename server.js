@@ -89,8 +89,16 @@ const server = http.createServer(function (req, res) {
                         break;
 
                     // Called when front-end requests contents of public/data
-                    case '/data/':
+                    case '/data1/':
                         const done = finalhandler(req, res);    // handler to write response
+                        serve(req, res, function onNext(err) {  // serve the indexes of the files in directory
+                            if (err) return done(err);
+                            index(req, res, done);
+                        })
+                        break;
+
+                    case '/data2/':
+                        done = finalhandler(req, res);    // handler to write response
                         serve(req, res, function onNext(err) {  // serve the indexes of the files in directory
                             if (err) return done(err);
                             index(req, res, done);
@@ -134,8 +142,9 @@ const server = http.createServer(function (req, res) {
                         freq += rcdata;
                     });
                     req.on('end', () => {
-                        freqVal1 = freq.toString();
-                        console.log("Logged a frequence of %s on /post1", freqVal1);
+                        // Need to remove "CenterFreq="
+                        freqVal1 = freq.toString().split("=")[1];
+                        console.log("Logged a frequency of %s on /post1", freqVal1);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -146,8 +155,8 @@ const server = http.createServer(function (req, res) {
                         freq += rcdata;
                     });
                     req.on('end', () => {
-                        freqVal2 = freq.toString();
-                        console.log("Logged a frequence of %s on /post2", freqVal2);
+                        freqVal2 = freq.toString().split("=")[1];
+                        console.log("Logged a frequency of %s on /post2", freqVal2);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -158,8 +167,8 @@ const server = http.createServer(function (req, res) {
                         freq += rcdata;
                     });
                     req.on('end', () => {
-                        freqVal3 = freq.toString();
-                        console.log("Logged a frequence of %s on /post3", freqVal3);
+                        freqVal3 = freq.toString().split("=")[1];
+                        console.log("Logged a frequency of %s on /post3", freqVal3);
                         sendCode(res, 200, "OK");
                     });
                     break;
@@ -170,8 +179,8 @@ const server = http.createServer(function (req, res) {
                         freq += rcdata;
                     });
                     req.on('end', () => {
-                        freqVal = freq.toString();
-                        console.log("Logged a frequence of %s on /post4", freqVal);
+                        freqVal = freq.toString().split("=")[1];
+                        console.log("Logged a frequency of %s on /post4", freqVal);
                         sendCode(res, 200, "OK");
                     });
                     break;
