@@ -11,7 +11,7 @@ const finalhandler = require('finalhandler');
 const serveIndex = require('serve-index');
 const serveStatic = require('serve-static');
 
-const port = 5000;
+const port = 80;
 const mime = {
     html: 'text/html',
     txt:  'text/plain',
@@ -98,7 +98,7 @@ const server = http.createServer(function (req, res) {
                         break;
 
                     case '/data2/':
-                        done = finalhandler(req, res);    // handler to write response
+                        done = finalhandler(req, res);          // handler to write response
                         serve(req, res, function onNext(err) {  // serve the indexes of the files in directory
                             if (err) return done(err);
                             index(req, res, done);
