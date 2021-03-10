@@ -7,12 +7,10 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script type="text/javascript">
     function makeChart() {
-
-
       // set the dimensions and margins of the graph
-      var margin = {top: 10, right: 30, bottom: 30, left: 200},
-        width = 2048 - margin.left - margin.right,
-        height = 1024 - margin.top - margin.bottom;
+      var margin = {top: 10, right: 30, bottom: 30, left: 100},
+        width = 1600 - margin.left - margin.right,
+        height = 512 - margin.top - margin.bottom;
 
       // append the svg object to the body of the page
       var svg = d3.select("#my_dataviz")
@@ -36,21 +34,20 @@
             var Q = [];
             var mag = [];
             var freq = [];
+            var samp_freq;
 
             // this makes the path relative to the current page location
             var filename = this.href.replace(window.location.pathname, "").replace("http://", "");
             var pathName = dir + filename.substring(filename.lastIndexOf('/') + 1);
             d3.text(pathName, (function (d) { //Reads in the CSV as a text file
               a = d3.csvParseRows(d); //Parses the text file as a csv, a is an array of each row
+              samp_freq = a[1][0];
               a.forEach((item, index) => { //Each item in 'a' is an arraysize 2 with I and Q
                 I.push(parseInt(item[0], 2)); //Stores I of each time sample
                 Q.push(parseInt(item[1], 2)); //Stores Q of each time sample
               });
               mag = calcMag(I, Q, mag);
-              console.log(I[1])
-              //normalize();
-              var i;
-              freq = linspace(150000, 450000  , 1024);
+              freq = linspace(samp_freq-150000, samp_freq+150000, 1024);
               graph(freq, mag.slice(1, freq.length), svg);
             }));
           });
@@ -61,8 +58,8 @@
       // Graphing the data
     function graph(xaxis, data, svg) {
             // set the dimensions and margins of the graph
-      var margin = {top: 10, right: 30, bottom: 30, left: 200},
-        width = 1024 - margin.left - margin.right,
+      var margin = {top: 10, right: 30, bottom: 30, left: 100},
+        width = 1600 - margin.left - margin.right,
         height = 512 - margin.top - margin.bottom;
 
       // Add X axis
@@ -74,24 +71,14 @@
         .call(d3.axisBottom(x));
 
       // Add Y axis
-      var y = d3.scaleLinear()
-        .domain([d3.min(data), d3.max(data)])
-        .range([height, 0]);
+      var y = d3.scaleLog()
+        //.domain([d3.min(data), d3.max(data)])
+        .domain([50000000, 8000000000])
+        .range([0, height]);
       svg.append("g")
         .call(d3.axisLeft(y)
-          .tickFormat(d3.format(".001e")));
+        .tickFormat(d3.format("0.00001e")));
 
-      
-      // // Add the line
-      // svg.append("path")
-      //   .datum(data)
-      //   .attr("fill", "none")
-      //   .attr("stroke", "steelblue")
-      //   .attr("stroke-width", 1.5)
-      //   .attr("d", d3.line()
-      //     .x(function (d, idx) {return x(xaxis[idx])})
-      //     .y(function (d, idx) {return y(data[idx])})
-      //   );
 
       svg.selectAll("path")
         .datum(data)
@@ -103,15 +90,6 @@
           .y(function (d, idx) {return y(data[idx])})
         );
 
-      // var path = svg.selectAll("path").data(line(_data)); 
-
-      // path.enter().append("path")
-			//     .attr("fill", "none")
-      //     .attr("stroke", "steeleblue")
-      //     .attr("stroke-width", 1.5)
-			//     .attr("d", arc)
-			// 	  .each(function(d) {this._current = d;} );
-
     }
 
     function calcMag(I, Q, mag) {
@@ -119,14 +97,6 @@
         mag.push(Math.sqrt((I[i] * I[i]) + (Q[i] * Q[i])));
       }
       return mag;
-    }
-
-    function normalize() {
-      var j;
-      for (j = 0; j < mag.length; j++) {
-        if (mag[j] < 5000000000)
-          mag[j] = 0;
-      }
     }
 
     function linspace(startValue, stopValue, cardinality) {
@@ -146,7 +116,7 @@
 
     <h2 style="text-align:center">Radio 1: Select Frequency</h2>
 
-    <form action="http://localhost:5000/post1" method='POST' style="text-align:center">
+    <form action="http://spectrumobservatory.wpi.edu/post1" method='POST' style="text-align:center">
       <input type="radio" id="CenterFreq" name="CenterFreq" value="600000000">
       <label for="CenterFreq">600 MHz</label>
       <input type="radio" id="CenterFreq" name="CenterFreq" value="850000000">
